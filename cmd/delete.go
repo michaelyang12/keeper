@@ -1,12 +1,13 @@
 /*
 Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
 import (
 	"fmt"
 
+	"github.com/michaelyang12/keeper/db"
+	"github.com/michaelyang12/keeper/logging"
 	"github.com/spf13/cobra"
 )
 
@@ -18,8 +19,22 @@ var deleteCmd = &cobra.Command{
 	Usages: > --delete <username>
 			> --delete <password>`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("delete called")
+		if err := executeDelete(args); err != nil {
+			logging.Error("Failed to delete credentials: %v\n", err)
+		}
 	},
+}
+
+func executeDelete(args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("invalid number of arguments")
+	}
+	tag := args[0]
+
+	if err := db.DeleteExistingCredential(tag); err != nil {
+		return err
+	}
+	return nil
 }
 
 func init() {

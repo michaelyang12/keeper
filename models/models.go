@@ -1,12 +1,16 @@
 package models
 
+// General credentials struct for cli use
 type Credentials struct {
-	User     string
+	Tag      string
+	Username string
 	Password string
 }
 
+// Struct for credentials entity in database
 type CredentialsEntity struct {
-	User              string
-	EncryptedPassword string
-	EncryptionKey     []byte
+	Tag      string
+	Username string
+	Password string
+	Key_Data []byte
 }

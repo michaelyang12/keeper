@@ -4,6 +4,8 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/michaelyang12/keeper/db"
 	"github.com/michaelyang12/keeper/logging"
 	"github.com/spf13/cobra"
@@ -15,18 +17,28 @@ var getCmd = &cobra.Command{
 	Short: "Get an existing credential.",
 	Long:  `Retrieve an existing credential by tag. The credential will be displayed. Use for login purposes. `,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) > 1 {
-			logging.Error("Too many arguments provided. Usage: get <tag>")
-			return
+		if err := executeGet(args); err != nil {
+			logging.Error("Failed to get credentials: %v\n", err)
 		}
-		tag := args[0]
-		cred, err := db.FetchExistingCredential(tag)
-		if err != nil {
-			logging.Error("Error getting credentials: %v\n", err)
-		}
-		logging.Success("Credentials retrieved for %s: \n", tag)
-		logging.Highlight("Username: %s\nPassword: %s\n", cred.User, cred.Password)
 	},
+}
+
+func executeGet(args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("invalid number of arguments")
+	}
+
+	tag := args[0]
+
+	cred, err := db.FetchExistingCredential(tag)
+	if err != nil {
+		return fmt.Errorf("couldn't fetch credentials: %v", err)
+	}
+
+	logging.Success("Credentials retrieved for: ")
+	logging.Highlight("%v\n", tag)
+	logging.Display("Username: %s\nPassword: %s\n", cred.Username, cred.Password)
+	return nil
 }
 
 func init() {

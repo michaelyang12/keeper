@@ -18,25 +18,31 @@ var addCmd = &cobra.Command{
 	Long: `Add a new credential to Keeper. keeper
 	Usage: add <tag> <username> <pasword>`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 3 {
-			fmt.Println("Error: Invalid number of arguments \nCorrect usage: add <tag> <username> <password>.")
-			return
+		if err := executeAdd(args); err != nil {
+			logging.Error("Failed to add credentials: %v\n", err)
 		}
-
-		// Get credentials
-		tag := args[0]
-		username := args[1]
-		password := args[2]
-
-		// TODO: Store credentials
-		if err := db.InsertNewCredential(tag, username, password); err != nil {
-			logging.Error("Error storing credentials: %v\n", err)
-			return
-		}
-
-		// Print new credentials
-		logging.Success("Added new credential: \nTag: %s\nUsername: %s\nPassword: %s\n", tag, username, password)
 	},
+}
+
+func executeAdd(args []string) error {
+	if len(args) != 3 {
+		return fmt.Errorf("invalid number of arguments")
+	}
+
+	// Get credentials
+	tag := args[0]
+	username := args[1]
+	password := args[2]
+
+	// TODO: Store credentials
+	if err := db.InsertNewCredential(tag, username, password); err != nil {
+		return fmt.Errorf("error storing credentials: %v", err)
+	}
+
+	// Print new credentials
+	logging.Success("Added new credentials: \n")
+	logging.Display("Tag: %s\nUsername: %s\nPassword: %s\n", tag, username, password)
+	return nil
 }
 
 func init() {

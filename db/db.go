@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/michaelyang12/keeper/logging"
 	"github.com/michaelyang12/keeper/models"
 	"github.com/michaelyang12/keeper/utils"
 	_ "github.com/mutecomm/go-sqlcipher/v4"
@@ -83,11 +84,11 @@ func InsertNewCredential(tag string, user string, password string) error {
 }
 
 func FetchExistingCredential(tag string) (*models.Credentials, error) {
-	fetchQuery := `SELECT username, password, key_data FROM credentials WHERE tag = ?`
+	fetchQuery := `SELECT tag, username, password, key_data FROM credentials WHERE tag = ?`
 	var entity models.CredentialsEntity
 	row := SqlDb.QueryRow(fetchQuery, tag)
 
-	err := row.Scan(&entity.User, &entity.EncryptedPassword, &entity.EncryptionKey)
+	err := row.Scan(&entity.Tag, &entity.Username, &entity.Password, &entity.Key_Data)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("no credential found with tag: %s", tag)
@@ -95,15 +96,73 @@ func FetchExistingCredential(tag string) (*models.Credentials, error) {
 		return nil, fmt.Errorf("error retrieving credential: %w", err)
 	}
 
-	password, err := utils.Decrypt(entity.EncryptedPassword, entity.EncryptionKey)
+	password, err := utils.Decrypt(entity.Password, entity.Key_Data)
 	if err != nil {
 		return nil, fmt.Errorf("error decrypting password: %w", err)
 	}
 
 	cred := models.Credentials{
-		User:     entity.User,
+		Tag:      tag,
+		Username: entity.Username,
 		Password: password,
 	}
 
 	return &cred, nil
+}
+
+func DeleteExistingCredential(tag string) error {
+	deleteQuery := `DELETE FROM credentials WHERE tag = ?`
+	result, err := SqlDb.Exec(deleteQuery, tag)
+	if err != nil {
+		return fmt.Errorf("failed to delete record: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error getting affected rows: %w", err)
+	}
+
+	if rowsAffected > 0 {
+		logging.Success("Removed credentials with tag: %v\n", tag)
+		return nil
+	}
+	logging.Warn("Credentials with specified tag doesn't exist. Nothing to delete.\n")
+	return nil
+}
+
+func FetchAllExistingCredentials() (*[]models.Credentials, error) {
+	fetchQuery := `SELECT tag, username, password, key_data FROM credentials`
+	var creds []models.Credentials
+
+	rows, err := SqlDb.Query(fetchQuery)
+	if err != nil {
+		return nil, fmt.Errorf("error fetching rows from db: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var entity models.CredentialsEntity
+
+		// Scan the columns into the entity struct
+		if err := rows.Scan(&entity.Tag, &entity.Username, &entity.Password, &entity.Key_Data); err != nil {
+			return nil, fmt.Errorf("error scanning row: %w", err)
+		}
+
+		// Get decrypted password
+		password, err := utils.Decrypt(entity.Password, entity.Key_Data)
+		if err != nil {
+			return nil, fmt.Errorf("error decrypting password: %w", err)
+		}
+
+		// Get credentials and append to list
+		cred := models.Credentials{
+			Tag:      entity.Tag,
+			Username: entity.Username,
+			Password: password,
+		}
+
+		creds = append(creds, cred)
+	}
+
+	return &creds, nil
 }
