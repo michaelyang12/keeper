@@ -35,3 +35,18 @@ go.mod
 
 # SQLite Database Files
 *.db
+
+# Ignore Go build output (executables)
+keeper
+keeper.exe
+keeper.out
+tmp
+
+# Ignore all binaries in the project
+*.exe
+*.out
+*.a
+*.o
+*.so
+*.obj
+.air.toml
