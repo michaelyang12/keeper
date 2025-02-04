@@ -1,0 +1,37 @@
+# Binaries & build artifacts
+*.exe
+*.out
+*.a
+*.so
+*.o
+*.obj
+
+# Dependencies (if using vendor)
+vendor/
+
+# IDE & editor files
+*.swp
+*.swo
+*.vscode/
+.idea/
+*.log
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Go modules
+go.sum
+go.mod
+
+# Coverage & testing
+*.cover
+*.test
+
+# Cache & temporary files
+*.tmp
+*.bak
+*.lock
+
+# SQLite Database Files
+*.db
