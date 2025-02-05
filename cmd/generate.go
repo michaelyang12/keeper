@@ -12,6 +12,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var length int
+
 // generateCmd represents the generate command
 var generateCmd = &cobra.Command{
 	Use:   "generate",
@@ -19,7 +21,7 @@ var generateCmd = &cobra.Command{
 	Long: `Generates a secure password using _ encryption. This can be used in conjunction with the add command to auto-generate a password for a new credentials.
 	Usage:`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := executeGenerate(args); err != nil {
+		if err := executeGenerate(); err != nil {
 			logging.Error("Failed to generate password: %v\n", err)
 			return
 		}
@@ -27,8 +29,8 @@ var generateCmd = &cobra.Command{
 	Args: cobra.ExactArgs(0),
 }
 
-func executeGenerate(args []string) error {
-	password, err := utils.GenerateRandomPassphrase(12)
+func executeGenerate() error {
+	password, err := utils.GenerateRandomPassphrase(length)
 	if err != nil {
 		return fmt.Errorf("error generating passphrase: %w", err)
 	}
@@ -45,6 +47,7 @@ func executeGenerate(args []string) error {
 }
 
 func init() {
+	generateCmd.Flags().IntVarP(&length, "length", "l", 16, "Length of the generated password. Generated passwords must be 12 characters minimum for maximum security")
 	rootCmd.AddCommand(generateCmd)
 
 	// Here you will define your flags and configuration settings.

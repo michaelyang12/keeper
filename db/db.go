@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/michaelyang12/keeper/logging"
 	"github.com/michaelyang12/keeper/models"
@@ -13,24 +14,61 @@ import (
 
 var SqlDb *sql.DB
 
-func GenerateEncryptionKey() ([]byte, error) {
-	key, err := utils.GenerateRandomKey()
-	if err != nil {
-		return nil, fmt.Errorf("error generating encryption key: %w", err)
-	}
-	log.Printf("Encryption Key: %v\n", key)
-
-	return key, nil
+func fileExists(filename string) bool {
+	_, err := os.Stat(filename)
+	return !os.IsNotExist(err)
 }
 
 // TODO: Come back to this and implement passphrase
-func InitializeLocalDatabase(passphrase string) error {
+func InitializeLocalDatabase() error {
 
-	// if passphrase == "" {
+	// Check if database exists
+	isNewDB := !fileExists("credentials.db")
+	// var passphrase string
+	// if isNewDB {
 	// 	var err error
-	// 	passphrase, err = utils.GenerateRandomPassphrase(12)
+	// 	passphrase, err = utils.GenerateRandomPassphrase(16)
 	// 	if err != nil {
 	// 		return fmt.Errorf("failed to generate random passphrase: %w", err)
+	// 	}
+	// } else {
+	// 	// Get passphrase from local file storage
+	// }
+	// // Open database with encryption settings in connection string
+	// connectionString := fmt.Sprintf("file:credentials.db?_pragma_key='%s'&_pragma_cipher_page_size=4096", passphrase)
+	// db, err := sql.Open("sqlite3", connectionString)
+	// if err != nil {
+	// 	return fmt.Errorf("open error: %v", err)
+	// }
+
+	// // For new database, create the table
+	// if isNewDB {
+	// 	createTableQuery := `
+	//     CREATE TABLE IF NOT EXISTS credentials (
+	//         id INTEGER PRIMARY KEY AUTOINCREMENT,
+	//         tag TEXT NOT NULL,
+	//         username TEXT NOT NULL,
+	//         password TEXT NOT NULL,
+	//         key_data BLOB NOT NULL,
+	//         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	//     )`
+	// 	if _, err := db.Exec(createTableQuery); err != nil {
+	// 		return fmt.Errorf("failed to create credentials table: %w", err)
+	// 	}
+	// }
+
+	// // Set other PRAGMA statements
+	// pragmas := []string{
+	// 	"PRAGMA cipher_page_size = 4096",
+	// 	"PRAGMA kdf_iter = 64000",
+	// 	"PRAGMA cipher_memory_security = ON",
+	// 	"PRAGMA cipher_default_kdf_iter = 64000",
+	// 	"PRAGMA cipher_use_hmac = ON",
+	// }
+
+	// for _, pragma := range pragmas {
+	// 	if _, err := db.Exec(pragma); err != nil {
+	// 		return fmt.Errorf("failed to set pragma: %w", err)
 	// 	}
 	// }
 	// os.Remove("credentials.db")
@@ -45,25 +83,29 @@ func InitializeLocalDatabase(passphrase string) error {
 	}
 	// defer db.Close()
 	// Create credentials table
-	createTableQuery := `
-    CREATE TABLE IF NOT EXISTS credentials (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tag TEXT NOT NULL,
-        username TEXT NOT NULL,
-        password TEXT NOT NULL,
-		key_data BLOB NOT NULL,
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )`
-	if _, err := db.Exec(createTableQuery); err != nil {
-		return fmt.Errorf("failed to create credentials table: %w", err)
+	if isNewDB {
+		createTableQuery := `
+		CREATE TABLE IF NOT EXISTS credentials (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			tag TEXT NOT NULL,
+			username TEXT NOT NULL,
+			password TEXT NOT NULL,
+			key_data BLOB NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`
+		if _, err := db.Exec(createTableQuery); err != nil {
+			return fmt.Errorf("failed to create credentials table: %w", err)
+		}
+		log.Println("Initialized local sqlcipher database with table 'credentials'")
 	}
+
 	SqlDb = db
 	return nil
 }
 
 func InsertNewCredential(tag string, user string, password string) error {
 	// Generate encryption key to encrypt password
-	encryptionKey, err := GenerateEncryptionKey()
+	encryptionKey, err := utils.GenerateEncryptionKey()
 	if err != nil {
 		return fmt.Errorf("failed to generate encryption key: %w", err)
 	}
@@ -91,9 +133,9 @@ func FetchExistingCredential(tag string) (*models.Credentials, error) {
 	err := row.Scan(&entity.Tag, &entity.Username, &entity.Password, &entity.Key_Data)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("no credential found with tag: %s", tag)
+			return nil, fmt.Errorf("no credentials found with tag: %s", tag)
 		}
-		return nil, fmt.Errorf("error retrieving credential: %w", err)
+		return nil, fmt.Errorf("error retrieving credentials: %w", err)
 	}
 
 	password, err := utils.Decrypt(entity.Password, entity.Key_Data)

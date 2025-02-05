@@ -15,7 +15,7 @@ import (
 // }
 
 func main() {
-	if err := db.InitializeLocalDatabase(""); err != nil {
+	if err := db.InitializeLocalDatabase(); err != nil {
 		logging.Error("Error at root: %v\n", err)
 		return
 	}

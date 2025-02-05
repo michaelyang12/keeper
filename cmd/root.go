@@ -13,7 +13,8 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   "keeper",
 	Short: "A simple CLI password manager made with Golang",
-	Long:  "Keeper is a simple CLI password manager made with Golang. It uses _ encryption and stores everything on the local machine securely using sqlcipher. \nTo get started, run 'keeper init <password>'.",
+	Long: `Keeper is a simple CLI password manager made with Golang. It uses AES encryption and stores everything on the local machine securely using sqlcipher.
+	To add credentials you wish to keep track of, run 'keeper add <tag> <username> <password>'.`,
 	// Run: func(cmd *cobra.Command, args []string) {
 	// 	// fmt.Println("Initializing db...")
 	// 	// Set password

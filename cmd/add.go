@@ -4,6 +4,8 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/michaelyang12/keeper/db"
@@ -40,10 +42,21 @@ var addCmd = &cobra.Command{
 }
 
 func executeAdd(args []string) error {
+
 	// Get credentials
 	tag := args[0]
 	username := args[1]
+
+	// Check if tag already exists
+	cred, err := db.FetchExistingCredential(tag)
+	if cred != nil {
+		return fmt.Errorf("credentials with tag %v already exists", tag)
+	} else if err != nil && errors.Is(err, sql.ErrNoRows) {
+		return err
+	}
+
 	var password string
+	// Generate password if --generate flag used
 	if generate {
 		p, err := utils.GenerateRandomPassphrase(16)
 		if err != nil {
@@ -51,17 +64,19 @@ func executeAdd(args []string) error {
 		}
 		password = p
 		logging.Success("Random password generated!\n")
+
+		// Otherwise use user-provided password
 	} else {
 		password = args[2]
 	}
 
-	// TODO: Store credentials
+	// Store credentials
 	if err := db.InsertNewCredential(tag, username, password); err != nil {
 		return fmt.Errorf("error storing credentials: %v", err)
 	}
 
 	// Print new credentials
-	logging.Success("Added new credentials: \n")
+	logging.Info("Added new credentials: \n")
 	logging.Display("Tag: %s\nUsername: %s\nPassword: %s\n", tag, username, password)
 	return nil
 }

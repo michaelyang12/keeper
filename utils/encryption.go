@@ -34,7 +34,7 @@ func GenerateRandomPassphrase(length int) (string, error) {
 	return string(passphrase), nil
 }
 
-func GenerateRandomKey() ([]byte, error) {
+func GenerateEncryptionKey() ([]byte, error) {
 	log.Println("Generating encryption key...")
 	key := make([]byte, 32) // AES-256 requires 32 bytes
 	_, err := rand.Read(key)

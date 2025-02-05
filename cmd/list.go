@@ -39,10 +39,10 @@ func executeList(args []string) error {
 }
 
 func printCredentialsList(credentials []models.Credentials) {
-	logging.Success("Stored credentials: \n")
-	logging.Success("----------------------------------------------------------\n")
+	logging.Info("Stored credentials: \n")
+	logging.Info("----------------------------------------------------------\n")
 	logging.Highlight("%-15s | %-30s | %-15s\n", "Tag", "Username", "Password")
-	logging.Success("----------------------------------------------------------\n")
+	logging.Info("----------------------------------------------------------\n")
 
 	for _, cred := range credentials {
 		logging.Display("%-15s | %-30s | %-15s\n", cred.Tag, cred.Username, cred.Password)
