@@ -13,7 +13,7 @@ import (
 	"io"
 )
 
-const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@%&?"
+const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!#$%&'()*+,-./:;<=>?@[]^_`{|}~"
 
 // GenerateRandomPassphrase generates a secure random passphrase of the given length.
 func GenerateRandomPassphrase(length int) (string, error) {
@@ -29,7 +29,7 @@ func GenerateRandomPassphrase(length int) (string, error) {
 		}
 		passphrase[i] = charset[randomIndex.Int64()]
 	}
-
+	log.Printf("Generated random passkey of length %v: %v", length, string(passphrase))
 	return string(passphrase), nil
 }
 

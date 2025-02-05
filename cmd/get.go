@@ -6,6 +6,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/atotto/clipboard"
 	"github.com/michaelyang12/keeper/db"
 	"github.com/michaelyang12/keeper/logging"
 	"github.com/spf13/cobra"
@@ -35,8 +36,13 @@ func executeGet(args []string) error {
 		return fmt.Errorf("couldn't fetch credentials: %v", err)
 	}
 
-	logging.Success("Credentials retrieved for: ")
-	logging.Highlight("%v\n", tag)
+	err = clipboard.WriteAll(cred.Password)
+	if err != nil {
+		return fmt.Errorf("failed to copy to clipboard: %w", err)
+	}
+
+	logging.Success("Credentials retrieved and copied to clipboard!\n")
+	logging.Highlight("| %v |\n", tag)
 	logging.Display("Username: %s\nPassword: %s\n", cred.Username, cred.Password)
 	return nil
 }
