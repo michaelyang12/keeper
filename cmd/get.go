@@ -42,8 +42,7 @@ func executeGet(args []string) error {
 	}
 
 	logging.Success("Credentials retrieved and copied to clipboard!\n")
-	logging.Highlight("| %v |\n", tag)
-	logging.Display("Username: %s\nPassword: %s\n", cred.Username, cred.Password)
+	logging.PrintTabbedCredentials(cred.Tag, cred.Username, cred.Password)
 	return nil
 }
 

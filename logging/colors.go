@@ -12,3 +12,11 @@ var (
 	Display   = color.New(color.FgCyan).PrintfFunc()
 	Highlight = color.New(color.FgHiMagenta).PrintfFunc()
 )
+
+func PrintTabbedCredentials(tag string, username string, password string) {
+	// Highlight(fmt.Sprintf("%s\t", tag))
+	// Display(fmt.Sprintf("%s\t", username))
+	// Info(fmt.Sprintf("%s\t\n", password))
+	Display("%s\t%s\t%s\n", tag, username, password)
+	// fmt.Printf("%v\t%v\t%v\n", tag, username, password)
+}

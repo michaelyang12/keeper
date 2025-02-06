@@ -105,15 +105,9 @@ func InitializeLocalDatabase() error {
 
 func InsertNewCredential(tag string, user string, password string) error {
 	// Generate encryption key to encrypt password
-	encryptionKey, err := utils.GenerateEncryptionKey()
+	encryptedPassword, encryptionKey, err := utils.EncryptPassword(password)
 	if err != nil {
-		return fmt.Errorf("failed to generate encryption key: %w", err)
-	}
-
-	// Encrypt password with key
-	encryptedPassword, err := utils.Encrypt(password, encryptionKey)
-	if err != nil {
-		return fmt.Errorf("failed to encrypt passphrase: %w", err)
+		return err
 	}
 
 	// Insert initial record, with encrypted password and encryption key used
@@ -172,7 +166,38 @@ func DeleteExistingCredential(tag string) error {
 	return nil
 }
 
-func FetchAllExistingCredentials() (*[]models.Credentials, error) {
+func UpdateExistingCredential(tag string, username string, password string) error {
+	updateQuery := `UPDATE credentials 
+    SET username = ?, 
+        password = ?, 
+        key_data = ? 
+    WHERE tag = ?`
+
+	encryptedPassword, encryptionKey, err := utils.EncryptPassword(password)
+	if err != nil {
+		return err
+	}
+
+	result, err := SqlDb.Exec(updateQuery, username, encryptedPassword, encryptionKey, tag)
+	if err != nil {
+		return fmt.Errorf("failed to update record: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error getting affected rows: %w", err)
+	}
+
+	if rowsAffected > 0 {
+		logging.Success("Updated credentials with tag: %v\n", tag)
+		return nil
+	}
+	logging.Warn("Credentials with specified tag doesn't exist. Nothing to update.\n")
+	return nil
+
+}
+
+func FetchAllExistingCredentials() ([]models.Credentials, error) {
 	fetchQuery := `SELECT tag, username, password, key_data FROM credentials`
 	var creds []models.Credentials
 
@@ -206,5 +231,5 @@ func FetchAllExistingCredentials() (*[]models.Credentials, error) {
 		creds = append(creds, cred)
 	}
 
-	return &creds, nil
+	return creds, nil
 }

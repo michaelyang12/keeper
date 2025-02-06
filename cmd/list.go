@@ -34,19 +34,21 @@ func executeList(args []string) error {
 	if err != nil {
 		return fmt.Errorf("error listing credentials: %v", err)
 	}
-	printCredentialsList(*credentials)
+	printCredentialsList(credentials)
 	return nil
 }
 
 func printCredentialsList(credentials []models.Credentials) {
 	logging.Info("Stored credentials: \n")
 	logging.Info("----------------------------------------------------------\n")
-	logging.Highlight("%-15s | %-30s | %-15s\n", "Tag", "Username", "Password")
+	logging.Highlight("%-15s | %-30s | %-20s\n", "Tag", "Username", "Password")
 	logging.Info("----------------------------------------------------------\n")
 
 	for _, cred := range credentials {
-		logging.Display("%-15s | %-30s | %-15s\n", cred.Tag, cred.Username, cred.Password)
+		logging.Display("%-15s | %-30s | %-20s\n", cred.Tag, cred.Username, cred.Password)
+		// logging.PrintTabbedCredentials(cred.Tag, cred.Username, cred.Password)
 	}
+
 }
 
 func init() {

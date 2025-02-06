@@ -77,7 +77,7 @@ func executeAdd(args []string) error {
 
 	// Print new credentials
 	logging.Info("Added new credentials: \n")
-	logging.Display("Tag: %s\nUsername: %s\nPassword: %s\n", tag, username, password)
+	logging.PrintTabbedCredentials(tag, username, password)
 	return nil
 }
 

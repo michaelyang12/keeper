@@ -30,7 +30,7 @@ func GenerateRandomPassphrase(length int) (string, error) {
 		}
 		passphrase[i] = charset[randomIndex.Int64()]
 	}
-	log.Printf("Generated random passkey of length %v: %v", length, string(passphrase))
+	log.Printf("Generated random passkey of length %v", length)
 	return string(passphrase), nil
 }
 
@@ -92,4 +92,20 @@ func Decrypt(encrypted string, key []byte) (string, error) {
 	}
 
 	return string(plaintext), nil
+}
+
+func EncryptPassword(password string) (string, []byte, error) {
+	// Encrypt new password and generate new key
+	encryptionKey, err := GenerateEncryptionKey()
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to generate encryption key: %w", err)
+	}
+
+	// Encrypt password with key
+	encryptedPassword, err := Encrypt(password, encryptionKey)
+	if err != nil {
+		return "", nil, fmt.Errorf("failed to encrypt passphrase: %w", err)
+	}
+
+	return encryptedPassword, encryptionKey, nil
 }
