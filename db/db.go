@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/michaelyang12/keeper/logging"
 	"github.com/michaelyang12/keeper/models"
@@ -21,61 +22,16 @@ func fileExists(filename string) bool {
 
 // TODO: Come back to this and implement passphrase
 func InitializeLocalDatabase() error {
-
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	dbFile := "credentials.db"
+	dbPath := filepath.Join(homedir, dbFile)
+	log.Println(dbPath)
 	// Check if database exists
-	isNewDB := !fileExists("credentials.db")
-	// var passphrase string
-	// if isNewDB {
-	// 	var err error
-	// 	passphrase, err = utils.GenerateRandomPassphrase(16)
-	// 	if err != nil {
-	// 		return fmt.Errorf("failed to generate random passphrase: %w", err)
-	// 	}
-	// } else {
-	// 	// Get passphrase from local file storage
-	// }
-	// // Open database with encryption settings in connection string
-	// connectionString := fmt.Sprintf("file:credentials.db?_pragma_key='%s'&_pragma_cipher_page_size=4096", passphrase)
-	// db, err := sql.Open("sqlite3", connectionString)
-	// if err != nil {
-	// 	return fmt.Errorf("open error: %v", err)
-	// }
-
-	// // For new database, create the table
-	// if isNewDB {
-	// 	createTableQuery := `
-	//     CREATE TABLE IF NOT EXISTS credentials (
-	//         id INTEGER PRIMARY KEY AUTOINCREMENT,
-	//         tag TEXT NOT NULL,
-	//         username TEXT NOT NULL,
-	//         password TEXT NOT NULL,
-	//         key_data BLOB NOT NULL,
-	//         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-	//     )`
-	// 	if _, err := db.Exec(createTableQuery); err != nil {
-	// 		return fmt.Errorf("failed to create credentials table: %w", err)
-	// 	}
-	// }
-
-	// // Set other PRAGMA statements
-	// pragmas := []string{
-	// 	"PRAGMA cipher_page_size = 4096",
-	// 	"PRAGMA kdf_iter = 64000",
-	// 	"PRAGMA cipher_memory_security = ON",
-	// 	"PRAGMA cipher_default_kdf_iter = 64000",
-	// 	"PRAGMA cipher_use_hmac = ON",
-	// }
-
-	// for _, pragma := range pragmas {
-	// 	if _, err := db.Exec(pragma); err != nil {
-	// 		return fmt.Errorf("failed to set pragma: %w", err)
-	// 	}
-	// }
-	// os.Remove("credentials.db")
-
-	// OPEN DATABASE
-	// connectionString := fmt.Sprintf("file:credentials.db?_pragma_key=test&_pragma_cipher=AES-256-CBC&_pragma_cipher_page_size=4096", passphrase)
-	connectionString := "file:credentials.db?_pragma_key=&_pragma_cipher=AES-256-CBC&_pragma_cipher_page_size=4096"
+	isNewDB := !fileExists(dbPath)
+	connectionString := fmt.Sprintf("file:%s?_pragma_key=&_pragma_cipher=AES-256-CBC&_pragma_cipher_page_size=4096", dbPath)
 	// db, err := sql.Open("sqlite3", fmt.Sprintf("file:credentials.db?_pragma_key=%s", passphrase))
 	db, err := sql.Open("sqlite3", connectionString)
 	if err != nil {
@@ -96,7 +52,8 @@ func InitializeLocalDatabase() error {
 		if _, err := db.Exec(createTableQuery); err != nil {
 			return fmt.Errorf("failed to create credentials table: %w", err)
 		}
-		log.Println("Initialized local sqlcipher database with table 'credentials'")
+
+		log.Println(fmt.Sprintf("Initialized local sqlcipher database with table %s", dbPath))
 	}
 
 	SqlDb = db
