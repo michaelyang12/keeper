@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/michaelyang12/keeper/logging"
 	"github.com/michaelyang12/keeper/models"
 	"github.com/michaelyang12/keeper/utils"
 	_ "github.com/mutecomm/go-sqlcipher/v4"
@@ -103,28 +102,26 @@ func InitializeLocalDatabase() error {
 	return nil
 }
 
-func InsertNewCredential(tag string, user string, password string) error {
-	// Generate encryption key to encrypt password
-	encryptedPassword, encryptionKey, err := utils.EncryptPassword(password)
+func InsertNewCredentials(tag string, user string, password string) error {
+	// Generate encrypted password and salt
+	encryptedPassword, salt, err := utils.EncryptAES(password)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to encrypt password: %w", err)
 	}
 
-	// Insert initial record, with encrypted password and encryption key used
-	insertQuery := `INSERT OR REPLACE INTO credentials (tag, username, password, key_data) VALUES (?, ?, ?, ?)`
-	if _, err := SqlDb.Exec(insertQuery, tag, user, encryptedPassword, encryptionKey); err != nil {
+	// Insert encrypted credentials into db
+	query := `INSERT OR REPLACE INTO credentials (tag, username, password, salt) VALUES (?, ?, ?, ?)`
+	if _, err := SqlDb.Exec(query, tag, user, encryptedPassword, salt); err != nil {
 		return fmt.Errorf("failed to insert initial record: %w", err)
 	}
-
 	return nil
 }
 
-func FetchExistingCredential(tag string) (*models.Credentials, error) {
-	fetchQuery := `SELECT tag, username, password, key_data FROM credentials WHERE tag = ?`
+func FetchExistingCredentials(tag string) (*models.Credentials, error) {
+	// Get credentials from db
+	query := `SELECT tag, username, password, salt FROM credentials WHERE tag = ?`
 	var entity models.CredentialsEntity
-	row := SqlDb.QueryRow(fetchQuery, tag)
-
-	err := row.Scan(&entity.Tag, &entity.Username, &entity.Password, &entity.Key_Data)
+	err := SqlDb.QueryRow(query, tag).Scan(&entity.Tag, &entity.Username, &entity.Password, &entity.Salt)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("no credentials found with tag: %s", tag)
@@ -132,7 +129,8 @@ func FetchExistingCredential(tag string) (*models.Credentials, error) {
 		return nil, fmt.Errorf("error retrieving credentials: %w", err)
 	}
 
-	password, err := utils.Decrypt(entity.Password, entity.Key_Data)
+	// Decrypt password
+	password, err := utils.DecryptAES(entity.Password, entity.Salt)
 	if err != nil {
 		return nil, fmt.Errorf("error decrypting password: %w", err)
 	}
@@ -146,56 +144,98 @@ func FetchExistingCredential(tag string) (*models.Credentials, error) {
 	return &cred, nil
 }
 
-func DeleteExistingCredential(tag string) error {
-	deleteQuery := `DELETE FROM credentials WHERE tag = ?`
-	result, err := SqlDb.Exec(deleteQuery, tag)
-	if err != nil {
-		return fmt.Errorf("failed to delete record: %w", err)
-	}
+// func InsertNewCredential(tag string, user string, password string) error {
+// 	// Generate encryption key to encrypt password
+// 	encryptedPassword, encryptionKey, err := utils.EncryptPassword(password)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("error getting affected rows: %w", err)
-	}
+// 	// Insert initial record, with encrypted password and encryption key used
+// 	insertQuery := `INSERT OR REPLACE INTO credentials (tag, username, password, key_data) VALUES (?, ?, ?, ?)`
+// 	if _, err := SqlDb.Exec(insertQuery, tag, user, encryptedPassword, encryptionKey); err != nil {
+// 		return fmt.Errorf("failed to insert initial record: %w", err)
+// 	}
 
-	if rowsAffected > 0 {
-		logging.Success("Removed credentials with tag: %v\n", tag)
-		return nil
-	}
-	logging.Warn("Credentials with specified tag doesn't exist. Nothing to delete.\n")
-	return nil
-}
+// 	return nil
+// }
 
-func UpdateExistingCredential(tag string, username string, password string) error {
-	updateQuery := `UPDATE credentials 
-    SET username = ?, 
-        password = ?, 
-        key_data = ? 
-    WHERE tag = ?`
+// func FetchExistingCredential(tag string) (*models.Credentials, error) {
+// 	fetchQuery := `SELECT tag, username, password, key_data FROM credentials WHERE tag = ?`
+// 	var entity models.CredentialsEntity
+// 	row := SqlDb.QueryRow(fetchQuery, tag)
 
-	encryptedPassword, encryptionKey, err := utils.EncryptPassword(password)
-	if err != nil {
-		return err
-	}
+// 	err := row.Scan(&entity.Tag, &entity.Username, &entity.Password, &entity.Key_Data)
+// 	if err != nil {
+// 		if err == sql.ErrNoRows {
+// 			return nil, fmt.Errorf("no credentials found with tag: %s", tag)
+// 		}
+// 		return nil, fmt.Errorf("error retrieving credentials: %w", err)
+// 	}
 
-	result, err := SqlDb.Exec(updateQuery, username, encryptedPassword, encryptionKey, tag)
-	if err != nil {
-		return fmt.Errorf("failed to update record: %w", err)
-	}
+// 	password, err := utils.Decrypt(entity.Password, entity.Key_Data)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("error decrypting password: %w", err)
+// 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("error getting affected rows: %w", err)
-	}
+// 	cred := models.Credentials{
+// 		Tag:      tag,
+// 		Username: entity.Username,
+// 		Password: password,
+// 	}
 
-	if rowsAffected > 0 {
-		logging.Success("Updated credentials with tag: %v\n", tag)
-		return nil
-	}
-	logging.Warn("Credentials with specified tag doesn't exist. Nothing to update.\n")
-	return nil
+// 	return &cred, nil
+// }
 
-}
+// func DeleteExistingCredential(tag string) error {
+// 	deleteQuery := `DELETE FROM credentials WHERE tag = ?`
+// 	result, err := SqlDb.Exec(deleteQuery, tag)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to delete record: %w", err)
+// 	}
+
+// 	rowsAffected, err := result.RowsAffected()
+// 	if err != nil {
+// 		return fmt.Errorf("error getting affected rows: %w", err)
+// 	}
+
+// 	if rowsAffected > 0 {
+// 		logging.Success("Removed credentials with tag: %v\n", tag)
+// 		return nil
+// 	}
+// 	logging.Warn("Credentials with specified tag doesn't exist. Nothing to delete.\n")
+// 	return nil
+// }
+
+// func UpdateExistingCredential(tag string, username string, password string) error {
+// 	updateQuery := `UPDATE credentials
+//     SET username = ?,
+//         password = ?,
+//         key_data = ?
+//     WHERE tag = ?`
+
+// 	encryptedPassword, encryptionKey, err := utils.EncryptPassword(password)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	result, err := SqlDb.Exec(updateQuery, username, encryptedPassword, encryptionKey, tag)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to update record: %w", err)
+// 	}
+
+// 	rowsAffected, err := result.RowsAffected()
+// 	if err != nil {
+// 		return fmt.Errorf("error getting affected rows: %w", err)
+// 	}
+
+// 	if rowsAffected > 0 {
+// 		logging.Success("Updated credentials with tag: %v\n", tag)
+// 		return nil
+// 	}
+// 	logging.Warn("Credentials with specified tag doesn't exist. Nothing to update.\n")
+// 	return nil
+// }
 
 func FetchAllExistingCredentials() ([]models.Credentials, error) {
 	fetchQuery := `SELECT tag, username, password, key_data FROM credentials`

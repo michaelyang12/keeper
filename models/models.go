@@ -12,5 +12,5 @@ type CredentialsEntity struct {
 	Tag      string
 	Username string
 	Password string
-	Key_Data []byte
+	Salt     string
 }

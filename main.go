@@ -7,6 +7,7 @@ import (
 	"github.com/michaelyang12/keeper/cmd"
 	"github.com/michaelyang12/keeper/db"
 	"github.com/michaelyang12/keeper/logging"
+	"github.com/michaelyang12/keeper/utils"
 )
 
 // var rootCmd = &cobra.Command{
@@ -19,5 +20,12 @@ func main() {
 		logging.Error("Error at root: %v\n", err)
 		return
 	}
+
+	// Store key (wont overrite if already exists)
+	if err := utils.StoreKey(); err != nil {
+		logging.Error("Error storing encryption key :%v\n", err)
+		return
+	}
+
 	cmd.Execute()
 }
