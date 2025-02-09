@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/aes"
+	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
@@ -9,15 +11,11 @@ import (
 	"log"
 	"math/big"
 
-	// "fmt"
-	"crypto/aes"
-	"crypto/cipher"
-
 	"github.com/zalando/go-keyring"
 	"golang.org/x/crypto/argon2"
 )
 
-const service = "GoPasswordManager" // Unique identifier for your app
+const service = "keeper_passwordmanager"
 
 // Generate a random encryption key (only run once if no key exists)
 func GenerateEncryptionKey() (string, error) {
@@ -47,29 +45,28 @@ func StoreKey() error {
 	return keyring.Set(service, "encryption_key", key)
 }
 
-// Retrieve the encryption key from the OS keyring
+// Retrieve encryption key from the OS keyring
 func GetStoredKey() ([]byte, error) {
 	keyStr, err := keyring.Get(service, "encryption_key")
 	if err != nil {
 		return nil, errors.New("encryption key not found, run setup first")
 	}
 
-	// Decode the base64 key
 	return base64.StdEncoding.DecodeString(keyStr)
 }
 
-// EncryptAES encrypts a password using AES-GCM.
-func EncryptAES(plaintext string) (string, string, error) {
+// Encrypt password using AES-GCM.
+func EncryptAES(plaintext string) (string, []byte, error) {
 	// Get the stored encryption key
 	key, err := GetStoredKey()
 	if err != nil {
-		return "", "", err
+		return "", nil, err
 	}
 
 	// Generate a random salt
 	salt := make([]byte, 16)
 	if _, err := rand.Read(salt); err != nil {
-		return "", "", err
+		return "", nil, err
 	}
 
 	// Derive encryption key
@@ -78,36 +75,32 @@ func EncryptAES(plaintext string) (string, string, error) {
 	// Create AES cipher
 	block, err := aes.NewCipher(derivedKey)
 	if err != nil {
-		return "", "", err
+		return "", nil, err
 	}
 
 	// Create GCM mode
 	aesGCM, err := cipher.NewGCM(block)
 	if err != nil {
-		return "", "", err
+		return "", nil, err
 	}
 
 	// Generate a random nonce
 	nonce := make([]byte, aesGCM.NonceSize())
 	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
-		return "", "", err
+		return "", nil, err
 	}
 
 	// Encrypt the password
 	ciphertext := aesGCM.Seal(nonce, nonce, []byte(plaintext), nil)
 
 	// Return encrypted data + salt (Base64 encoded)
-	return base64.StdEncoding.EncodeToString(ciphertext), base64.StdEncoding.EncodeToString(salt), nil
+	return base64.StdEncoding.EncodeToString(ciphertext), salt, nil
 }
 
 // DecryptAES decrypts the stored password.
-func DecryptAES(ciphertextBase64, saltBase64 string) (string, error) {
+func DecryptAES(ciphertextBase64 string, salt []byte) (string, error) {
 	// Decode the base64 values
 	ciphertext, err := base64.StdEncoding.DecodeString(ciphertextBase64)
-	if err != nil {
-		return "", err
-	}
-	salt, err := base64.StdEncoding.DecodeString(saltBase64)
 	if err != nil {
 		return "", err
 	}

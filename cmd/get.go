@@ -31,7 +31,7 @@ func executeGet(args []string) error {
 
 	tag := args[0]
 
-	cred, err := db.FetchExistingCredential(tag)
+	cred, err := db.FetchExistingCredentials(tag)
 	if err != nil {
 		return fmt.Errorf("couldn't fetch credentials: %v", err)
 	}

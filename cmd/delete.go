@@ -31,7 +31,7 @@ func executeDelete(args []string) error {
 	}
 	tag := args[0]
 
-	if err := db.DeleteExistingCredential(tag); err != nil {
+	if err := db.DeleteExistingCredentials(tag); err != nil {
 		return err
 	}
 	return nil

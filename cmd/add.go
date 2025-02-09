@@ -48,7 +48,7 @@ func executeAdd(args []string) error {
 	username := args[1]
 
 	// Check if tag already exists
-	cred, err := db.FetchExistingCredential(tag)
+	cred, err := db.FetchExistingCredentials(tag)
 	if cred != nil {
 		return fmt.Errorf("credentials with tag %v already exists", tag)
 	} else if err != nil && errors.Is(err, sql.ErrNoRows) {
@@ -71,7 +71,7 @@ func executeAdd(args []string) error {
 	}
 
 	// Store credentials
-	if err := db.InsertNewCredential(tag, username, password); err != nil {
+	if err := db.InsertNewCredentials(tag, username, password); err != nil {
 		return fmt.Errorf("error storing credentials: %v", err)
 	}
 

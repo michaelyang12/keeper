@@ -44,7 +44,7 @@ func executeUpdate(args []string) error {
 	if updateUsername {
 		username = args[2]
 	} else {
-		cred, err := db.FetchExistingCredential(tag)
+		cred, err := db.FetchExistingCredentials(tag)
 		if err != nil {
 			return err
 		}
